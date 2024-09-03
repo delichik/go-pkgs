@@ -100,7 +100,7 @@ func (q *Queue[T]) Dequeue() (T, error) {
 
 	e := q.element.Front()
 	q.element.Remove(e)
-	return e.Value, nil
+	return e.Value(), nil
 }
 
 func (q *Queue[T]) WaitEmpty() {

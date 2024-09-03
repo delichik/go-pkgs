@@ -2,10 +2,8 @@ package wrapper
 
 type Element[T any] struct {
 	next, prev *Element[T]
-
-	list *List[T]
-
-	Value T
+	list       *List[T]
+	v          T
 }
 
 func (e *Element[T]) Next() *Element[T] {
@@ -22,14 +20,16 @@ func (e *Element[T]) Prev() *Element[T] {
 	return nil
 }
 
+func (e *Element[T]) Value() T {
+	return e.v
+}
+
 type List[T any] struct {
 	root Element[T]
 	len  int
 }
 
 func (l *List[T]) Init() *List[T] {
-	l.root.next = &l.root
-	l.root.prev = &l.root
 	l.len = 0
 	return l
 }
@@ -98,7 +98,7 @@ func (l *List[T]) Remove(e *Element[T]) any {
 	if e.list == l {
 		l.remove(e)
 	}
-	return e.Value
+	return e.v
 }
 
 func (l *List[T]) PushFront(v T) *Element[T] {
@@ -156,13 +156,13 @@ func (l *List[T]) MoveAfter(e, mark *Element[T]) {
 func (l *List[T]) PushBackList(other *List[T]) {
 	l.lazyInit()
 	for i, e := other.Len(), other.Front(); i > 0; i, e = i-1, e.Next() {
-		l.insertValue(e.Value, l.root.prev)
+		l.insertValue(e.v, l.root.prev)
 	}
 }
 
 func (l *List[T]) PushFrontList(other *List[T]) {
 	l.lazyInit()
 	for i, e := other.Len(), other.Back(); i > 0; i, e = i-1, e.Prev() {
-		l.insertValue(e.Value, &l.root)
+		l.insertValue(e.v, &l.root)
 	}
 }

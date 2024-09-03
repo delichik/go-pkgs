@@ -1,12 +1,11 @@
 package wrapper
 
 import (
+	"cmp"
 	"sync"
-
-	"github.com/google/go-cmp/cmp"
 )
 
-type SyncMap[K cmp.MapIndex, V any] struct {
+type SyncMap[K cmp.Ordered, V any] struct {
 	m sync.Map
 }
 
