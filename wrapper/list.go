@@ -69,7 +69,7 @@ func (l *List[T]) insert(e, at *Element[T]) *Element[T] {
 }
 
 func (l *List[T]) insertValue(v T, at *Element[T]) *Element[T] {
-	return l.insert(&Element[T]{Value: v}, at)
+	return l.insert(&Element[T]{v: v}, at)
 }
 
 func (l *List[T]) remove(e *Element[T]) {
