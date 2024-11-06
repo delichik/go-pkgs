@@ -4,7 +4,6 @@ go 1.22.5
 
 require (
 	github.com/delichik/daf v0.4.0
-	github.com/google/go-cmp v0.6.0
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	go.uber.org/zap v1.27.0
 )
