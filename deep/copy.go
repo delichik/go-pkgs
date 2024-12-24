@@ -20,9 +20,9 @@ type copyHandler struct {
 
 func (copyHandler) genKey(src reflect.Value) uint64 {
 	switch src.Kind() {
-	case reflect.Pointer, reflect.Chan, reflect.Map, reflect.UnsafePointer, reflect.Func, reflect.Slice:
+	case reflect.Chan, reflect.Map, reflect.UnsafePointer, reflect.Func:
 		return uint64(src.Pointer())<<6 + uint64(src.Kind())<<1
-	case reflect.Struct, reflect.Interface:
+	case reflect.Pointer, reflect.Struct, reflect.Interface, reflect.Slice:
 		return uint64(src.UnsafeAddr())<<6 + uint64(src.Kind())<<1 + 1
 	default:
 		return 0
@@ -47,6 +47,9 @@ func (h copyHandler) handle(src, dst reflect.Value) {
 		dst.Set(reflect.MakeMap(src.Type()))
 		h.handleMap(src, dst)
 	default:
+		if src.Kind() == reflect.Invalid {
+			return
+		}
 		dst.Set(src)
 	}
 }
@@ -54,12 +57,13 @@ func (h copyHandler) handle(src, dst reflect.Value) {
 func (h copyHandler) handlePointer(src, dst reflect.Value) {
 	src = src.Elem()
 	addr := h.genKey(src)
+	if addr == 0 {
+		return
+	}
 	ndst, ok := h.addrMap[addr]
 	if !ok {
 		ndst = reflect.New(src.Type()).Elem()
-		if addr > 0 {
-			h.addrMap[addr] = ndst
-		}
+		h.addrMap[addr] = ndst
 		h.handle(src, ndst)
 	}
 	dst.Set(ndst.Addr())
@@ -163,3 +167,4 @@ func (h copyHandler) handleMap(src, dst reflect.Value) {
 		dst.SetMapIndex(kdst, vdst)
 	}
 }
+
