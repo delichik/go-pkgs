@@ -1,6 +1,6 @@
 module github.com/delichik/go-pkgs
 
-go 1.22.5
+go 1.22
 
 require (
 	github.com/delichik/daf v0.4.0
