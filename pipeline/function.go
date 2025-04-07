@@ -2,24 +2,24 @@ package pipeline
 
 import "reflect"
 
-type Function struct {
+type _Function struct {
 	In     []*ParamRequire
-	Out    []*Param
+	Out    []*_Param
 	Name   string
 	InLoad bool
 	Loaded bool
 	frv    reflect.Value
 }
 
-func (f *Function) Call(params ...reflect.Value) (outputs []reflect.Value) {
+func (f *_Function) Call(params ...reflect.Value) (outputs []reflect.Value) {
 	return f.frv.Call(params)
 }
 
-func readFunction(fun any) *Function {
+func readFunction(fun any) *_Function {
 	frv := reflect.ValueOf(fun)
 	frt := frv.Type()
 
-	fo := &Function{
+	fo := &_Function{
 		Name: frt.PkgPath() + "." + frt.Name(),
 		frv:  frv,
 	}
@@ -29,20 +29,23 @@ func readFunction(fun any) *Function {
 		pr := &ParamRequire{}
 		if pt.Kind() == reflect.Pointer {
 			pt = pt.Elem()
-			pr.AddPointer = true
+			pr.NeedPointer = true
 		}
+
 		pr.Name = pt.PkgPath() + "." + pt.Name()
+		pr.Type = pt
 		fo.In = append(fo.In, pr)
 	}
 
 	for i := 0; i < frt.NumOut(); i++ {
 		pt := frt.Out(i)
-		param := &Param{}
+		param := &_Param{}
 		if pt.Kind() == reflect.Pointer {
 			pt = pt.Elem()
-			param.RemovePointer = true
+			param.PointerRemoved = true
 		}
 		param.Name = pt.PkgPath() + "." + pt.Name()
+		param.Type = pt
 		fo.Out = append(fo.Out, param)
 	}
 

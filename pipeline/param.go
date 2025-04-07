@@ -2,14 +2,16 @@ package pipeline
 
 import "reflect"
 
-type Param struct {
-	RemovePointer bool
-	Name          string
-	Value         reflect.Value
+type _Param struct {
+	PointerRemoved bool
+	Name           string
+	Type           reflect.Type
+	Value          reflect.Value
 }
 
 type ParamRequire struct {
-	AddPointer bool
-	Name       string
-	Param      *Param
+	NeedPointer bool
+	Name        string
+	Type        reflect.Type
+	Param       *_Param
 }
