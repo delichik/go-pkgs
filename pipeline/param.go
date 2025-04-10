@@ -2,16 +2,16 @@ package pipeline
 
 import "reflect"
 
-type _Param struct {
-	PointerRemoved bool
-	Name           string
-	Type           reflect.Type
-	Value          reflect.Value
+type Param struct {
+	pointerRemoved bool
+	name           string
+	type_          reflect.Type
+	value          reflect.Value
 }
 
 type ParamRequire struct {
-	NeedPointer bool
-	Name        string
-	Type        reflect.Type
-	Param       *_Param
+	needPointer bool
+	name        string
+	type_       reflect.Type
+	param       *Param
 }
