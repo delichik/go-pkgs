@@ -1,26 +1,46 @@
 package pipeline
 
-import "reflect"
+import (
+	"reflect"
+)
 
-type _Function struct {
-	In     []*ParamRequire
-	Out    []*_Param
-	Name   string
-	InLoad bool
-	Loaded bool
-	frv    reflect.Value
+type Function struct {
+	in             []*ParamRequire
+	out            []*Param
+	name           string
+	inLoad         bool
+	loaded         bool
+	dynamic        bool
+	dynamicMapping []reflect.Value
+
+	frv reflect.Value
 }
 
-func (f *_Function) Call(params ...reflect.Value) (outputs []reflect.Value) {
-	return f.frv.Call(params)
+func (f *Function) Call(params ...reflect.Value) (outputs []reflect.Value) {
+	if f.dynamic {
+		for i, param := range params {
+			dm := f.dynamicMapping[i]
+			if dm.CanSet() {
+				dm.Set(param)
+			} else {
+				setPrivate(dm, param)
+			}
+		}
+		for _, v := range f.out {
+			outputs = append(outputs, v.value)
+		}
+		return outputs
+	} else {
+		return f.frv.Call(params)
+	}
 }
 
-func readFunction(fun any) *_Function {
+func readFunction(fun any) *Function {
 	frv := reflect.ValueOf(fun)
 	frt := frv.Type()
 
-	fo := &_Function{
-		Name: frt.PkgPath() + "." + frt.Name(),
+	fo := &Function{
+		name: getName(frt),
 		frv:  frv,
 	}
 
@@ -29,24 +49,24 @@ func readFunction(fun any) *_Function {
 		pr := &ParamRequire{}
 		if pt.Kind() == reflect.Pointer {
 			pt = pt.Elem()
-			pr.NeedPointer = true
+			pr.needPointer = true
 		}
 
-		pr.Name = pt.PkgPath() + "." + pt.Name()
-		pr.Type = pt
-		fo.In = append(fo.In, pr)
+		pr.name = getName(pt)
+		pr.type_ = pt
+		fo.in = append(fo.in, pr)
 	}
 
 	for i := 0; i < frt.NumOut(); i++ {
 		pt := frt.Out(i)
-		param := &_Param{}
+		param := &Param{}
 		if pt.Kind() == reflect.Pointer {
 			pt = pt.Elem()
-			param.PointerRemoved = true
+			param.pointerRemoved = true
 		}
-		param.Name = pt.PkgPath() + "." + pt.Name()
-		param.Type = pt
-		fo.Out = append(fo.Out, param)
+		param.name = pt.PkgPath() + "." + pt.Name()
+		param.type_ = pt
+		fo.out = append(fo.out, param)
 	}
 
 	return fo

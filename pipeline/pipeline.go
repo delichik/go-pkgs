@@ -5,15 +5,15 @@ import (
 )
 
 type _ParamProvider struct {
-	Function *_Function
-	Param    *_Param
+	function *Function
+	param    *Param
 }
 
 type Pipeline struct {
 	paramProviders map[string]*_ParamProvider
-	functions      []*_Function
-	invokers       []*_Function
-	ordered        []*_Function
+	functions      []*Function
+	invokers       []*Function
+	ordered        []*Function
 }
 
 func NewPipeline() *Pipeline {
@@ -23,11 +23,17 @@ func NewPipeline() *Pipeline {
 }
 
 func (p *Pipeline) Provide(fun any) *Pipeline {
-	fo := readFunction(fun)
-	for _, param := range fo.Out {
-		p.paramProviders[param.Name] = &_ParamProvider{
-			Function: fo,
-			Param:    param,
+	var fo *Function
+	switch fun.(type) {
+	case *Function:
+		fo = fun.(*Function)
+	default:
+		fo = readFunction(fun)
+	}
+	for _, param := range fo.out {
+		p.paramProviders[param.name] = &_ParamProvider{
+			function: fo,
+			param:    param,
 		}
 	}
 	p.functions = append(p.functions, fo)
@@ -37,10 +43,10 @@ func (p *Pipeline) Provide(fun any) *Pipeline {
 
 func (p *Pipeline) Invoke(fun any) *Pipeline {
 	fo := readFunction(fun)
-	for _, param := range fo.Out {
-		p.paramProviders[param.Name] = &_ParamProvider{
-			Function: fo,
-			Param:    param,
+	for _, param := range fo.out {
+		p.paramProviders[param.name] = &_ParamProvider{
+			function: fo,
+			param:    param,
 		}
 	}
 	p.invokers = append(p.invokers, fo)
@@ -57,67 +63,73 @@ func (p *Pipeline) Prepare() *Pipeline {
 
 func (p *Pipeline) Run() {
 	for _, fo := range p.ordered {
-		params := make([]reflect.Value, 0, len(fo.In))
-		for _, pr := range fo.In {
-			pv := pr.Param.Value
-			if pr.NeedPointer {
-				pv = pv.Addr()
+		params := make([]reflect.Value, 0, len(fo.in))
+		for _, pr := range fo.in {
+			pv := pr.param.value
+			if pr.needPointer {
+				if pv.CanAddr() {
+					pv = pv.Addr()
+				} else {
+					t := reflect.New(pv.Type())
+					t.Elem().Set(pv)
+					pv = t
+				}
 			}
 			params = append(params, pv)
 		}
 		outputs := fo.Call(params...)
-		for i, p := range fo.Out {
-			if p.PointerRemoved {
-				p.Value = outputs[i].Elem()
+		for i, p := range fo.out {
+			if p.pointerRemoved {
+				p.value = outputs[i].Elem()
 			} else {
 				t := reflect.New(outputs[i].Type())
 				t.Elem().Set(outputs[i])
-				p.Value = t.Elem()
+				p.value = t.Elem()
 			}
-			if !p.Value.IsValid() {
-				panic("nil or invalid value for " + p.Name)
+			if !p.value.IsValid() {
+				panic("nil or invalid value for " + p.name)
 			}
 		}
 	}
 }
 
-func (p *Pipeline) call(fo *_Function) {
-	if fo.Loaded {
+func (p *Pipeline) call(fo *Function) {
+	if fo.loaded {
 		return
 	}
 
-	if fo.InLoad {
-		panic(fo.Name + " in loop call")
+	if fo.inLoad {
+		panic(fo.name + " in loop call")
 	}
 
-	fo.InLoad = true
-	for _, param := range fo.In {
-		pp, ok := p.paramProviders[param.Name]
-		if !ok && param.Type.Kind() == reflect.Interface {
+	fo.inLoad = true
+	for _, param := range fo.in {
+		pp, ok := p.paramProviders[param.name]
+		if !ok && param.type_.Kind() == reflect.Interface {
 			for _, pp2 := range p.paramProviders {
-				if pp2.Param.Type.Kind() == reflect.Interface {
+				if pp2.param.type_.Kind() == reflect.Interface {
 					continue
 				}
-				if reflect.PointerTo(pp2.Param.Type).Implements(param.Type) {
+				if reflect.PointerTo(pp2.param.type_).Implements(param.type_) {
 					if pp != nil {
-						panic("confused implements of " + param.Name)
+						panic("confused implements of " + param.name)
 					}
 					pp = pp2
-					param.NeedPointer = true
-				} else if pp2.Param.Type.Implements(param.Type) {
+					param.needPointer = true
+				} else if pp2.param.type_.Implements(param.type_) {
 					if pp != nil {
-						panic("confused implements of " + param.Name)
+						panic("confused implements of " + param.name)
 					}
 					pp = pp2
 				}
 			}
 		}
 		if pp == nil {
-			panic("no provider for " + param.Name)
+			panic("no provider for " + param.name)
 		}
-		param.Param = pp.Param
-		p.call(pp.Function)
+		param.param = pp.param
+		p.call(pp.function)
 	}
 	p.ordered = append(p.ordered, fo)
-	fo.Loaded = true
+	fo.loaded = true
 }
